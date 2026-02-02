@@ -13,6 +13,7 @@ pub use encoder::{
 };
 pub use video::{resolve_segments, VideoClip, VideoSegment};
 pub use scene::{
-    AnimatedTransform, Color, Easing, ImageObject, Keyframe, Object, Shape, Track, Transform, Vec2,
+    AnimatedTransform, Color, Easing, FontFamily, FontSource, ImageObject, Keyframe, Object, Shape,
+    StyleFlags, StyledText, TextObject, TextRun, Track, Transform, Vec2,
 };
 pub use timeline::{Clip, Layer, Timeline};

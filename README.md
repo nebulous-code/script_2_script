@@ -50,6 +50,14 @@ cargo run --example m5_video_clips -- --width 800 --height 600 --fps 30
 
 This stitches multiple mp4 clips into a single base video using ffmpeg concat, with overlap handling and optional trims.
 
+## M6 Credits Roll
+
+```bash
+cargo run --example m6_credits_roll
+```
+
+This renders a scrolling credits block from `assets/credits.md` with bold/italic/underline support.
+
 ## Coordinate System (Graph Coords)
 
 All public APIs use center-origin graph coordinates:
@@ -82,10 +90,12 @@ examples/
   m3_render_video.rs
   m4_render_audio.rs
   m5_video_clips.rs
+  m6_credits_roll.rs
 assets/
   logo.png
   clip_a.mp4
   clip_b.mp4
+  credits.md
 ```
 
 ## Notes

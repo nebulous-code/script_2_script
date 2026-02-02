@@ -1,10 +1,11 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{bail, Context, Result};
 use raylib::consts::PixelFormat;
 use raylib::prelude::*;
 
+use crate::backend::resources::ResourceCache;
+use crate::backend::text_render::draw_text_block;
 use crate::scene::{Color, Object, Shape, Transform, Vec2};
 use crate::timeline::{SampledScene, Timeline};
 
@@ -15,7 +16,7 @@ pub struct RaylibRender {
     width: u32,
     height: u32,
     bg: Color,
-    cache: TextureCache,
+    cache: ResourceCache,
 }
 
 impl RaylibRender {
@@ -36,7 +37,7 @@ impl RaylibRender {
             width,
             height,
             bg,
-            cache: TextureCache::new(),
+            cache: ResourceCache::new(),
         })
     }
 
@@ -91,7 +92,7 @@ impl RaylibRender {
 
 fn draw_object(
     d: &mut impl RaylibDraw,
-    cache: &TextureCache,
+    cache: &ResourceCache,
     width: u32,
     height: u32,
     object: &Object,
@@ -100,6 +101,7 @@ fn draw_object(
     match object {
         Object::Shape(shape) => draw_shape(d, width, height, shape, transform),
         Object::Image(image) => draw_image(d, cache, width, height, &image.path, transform),
+        Object::Text(text) => draw_text_block(d, cache, width, height, text, transform),
     }
 }
 
@@ -138,13 +140,13 @@ fn draw_shape(
 
 fn draw_image(
     d: &mut impl RaylibDraw,
-    cache: &TextureCache,
+    cache: &ResourceCache,
     width: u32,
     height: u32,
     path: &Path,
     transform: &Transform,
 ) -> Result<()> {
-    let texture = cache.get(path)?;
+    let texture = cache.get_texture(path)?;
     let tex_w = texture.width as f32;
     let tex_h = texture.height as f32;
 
@@ -215,48 +217,4 @@ fn capture_rgba(render_texture: &RenderTexture2D, expected_w: u32, expected_h: u
     }
 
     result
-}
-
-struct TextureCache {
-    textures: HashMap<PathBuf, Texture2D>,
-}
-
-impl TextureCache {
-    fn new() -> Self {
-        Self {
-            textures: HashMap::new(),
-        }
-    }
-
-    fn get(&self, path: &Path) -> Result<&Texture2D> {
-        if !path.exists() {
-            bail!("image asset not found: {}", path.display());
-        }
-        Ok(self.textures.get(path).expect("texture cache missing"))
-    }
-
-    fn preload_for_scene(
-        &mut self,
-        rl: &mut RaylibHandle,
-        thread: &RaylibThread,
-        scene: &SampledScene,
-    ) -> Result<()> {
-        for layer in &scene.layers {
-            for clip in &layer.clips {
-                if let Object::Image(image) = &clip.object {
-                    let path = &image.path;
-                    if !path.exists() {
-                        bail!("image asset not found: {}", path.display());
-                    }
-                    if !self.textures.contains_key(path) {
-                        let tex = rl
-                            .load_texture(thread, path.to_string_lossy().as_ref())
-                            .context("failed to load texture")?;
-                        self.textures.insert(path.to_path_buf(), tex);
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
 }
