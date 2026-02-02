@@ -26,6 +26,14 @@ cargo run --example m2_preview_audio -- --start_time 0 --end_time 6
 
 Preview time advances with fixed `dt = 1.0 / fps`, not wall-clock time. Audio init/loading returns `Result`, so missing assets surface as errors.
 
+## M3 Render (Video Only)
+
+```bash
+cargo run --example m3_render_video -- --render --start_time 0 --end_time 6
+```
+
+This renders a video-only MP4 via ffmpeg using deterministic sampling.
+
 ## Coordinate System (Graph Coords)
 
 All public APIs use center-origin graph coordinates:
@@ -55,6 +63,7 @@ examples/
   m0_hello_timeline.rs
   m1_animation.rs
   m2_preview_audio.rs
+  m3_render_video.rs
 assets/
   logo.png
 ```
