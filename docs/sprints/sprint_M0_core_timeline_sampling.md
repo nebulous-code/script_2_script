@@ -105,28 +105,28 @@ Raylib uses top-left origin with +Y downward. The backend must convert:
 ---
 
 ## Tasks
-- [ ] Create `Timeline/Layer/Clip` structs with **Result-based validation**:
-  - [ ] constructors/builders return `Result<_, Error>` (no panics for invalid user inputs)
-  - [ ] enforce `0 <= start < end <= duration`
-  - [ ] clips can overlap; ordering resolves by layer ordering rules
-- [ ] Implement `Timeline::sample(t: f32) -> SampledScene`
-  - [ ] selects active clips: `start <= t < end`
-  - [ ] orders layers by the defined implicit+override rule (stable sort)
-- [ ] Implement `Renderable` trait (or similar):
-  - [ ] `fn draw(&self, ctx: &mut DrawCtx, transform: &Transform) -> Result<()>`
-- [ ] Implement `Shape` drawing via raylib backend
-  - [ ] backend takes graph coords and converts internally
-- [ ] Implement `Image` loading + drawing via raylib backend
-  - [ ] cache textures so they load once (keyed by asset path)
-  - [ ] drawing uses graph coords (backend converts to screen coords)
-- [ ] Implement preview renderer:
-  - [ ] fixed realtime preview loop
-  - [ ] `t` advances by dt (based on fps or actual elapsed time)
-  - [ ] render all active clips each frame
-- [ ] Add `examples/m0_hello_timeline.rs`
-  - [ ] a circle and a logo image appear at different times/layers
-  - [ ] include at least one overlap moment to visually confirm layer ordering
-- [ ] Add minimal README snippet describing M0 example + graph coord convention
+- [x] Create `Timeline/Layer/Clip` structs with **Result-based validation**:
+  - [x] constructors/builders return `Result<_, Error>` (no panics for invalid user inputs)
+  - [x] enforce `0 <= start < end <= duration`
+  - [x] clips can overlap; ordering resolves by layer ordering rules
+- [x] Implement `Timeline::sample(t: f32) -> SampledScene`
+  - [x] selects active clips: `start <= t < end`
+  - [x] orders layers by the defined implicit+override rule (stable sort)
+- [x] Implement `Renderable` trait (or similar):
+  - [x] `fn draw(&self, ctx: &mut DrawCtx, transform: &Transform) -> Result<()>`
+- [x] Implement `Shape` drawing via raylib backend
+  - [x] backend takes graph coords and converts internally
+- [x] Implement `Image` loading + drawing via raylib backend
+  - [x] cache textures so they load once (keyed by asset path)
+  - [x] drawing uses graph coords (backend converts to screen coords)
+- [x] Implement preview renderer:
+  - [x] fixed realtime preview loop
+  - [x] `t` advances by dt (based on fps or actual elapsed time)
+  - [x] render all active clips each frame
+- [x] Add `examples/m0_hello_timeline.rs`
+  - [x] a circle and a logo image appear at different times/layers
+  - [x] include at least one overlap moment to visually confirm layer ordering
+- [x] Add minimal README snippet describing M0 example + graph coord convention
 
 ---
 
@@ -140,12 +140,12 @@ Raylib uses top-left origin with +Y downward. The backend must convert:
 ---
 
 ## Acceptance Criteria
-- [ ] Running `cargo run --example m0_hello_timeline` opens a window and shows a deterministic sequence of visuals.
-- [ ] Timeline sampling is time-based (seconds), not frame-index-based internally.
-- [ ] Asset loading is not repeated every frame (basic caching exists).
-- [ ] Z-order is predictable and documented:
+- [x] Running `cargo run --example m0_hello_timeline` opens a window and shows a deterministic sequence of visuals.
+- [x] Timeline sampling is time-based (seconds), not frame-index-based internally.
+- [x] Asset loading is not repeated every frame (basic caching exists).
+- [x] Z-order is predictable and documented:
   - default insertion order + optional `z_override`
-- [ ] Public API never requires users to think in raylib coordinates.
+- [x] Public API never requires users to think in raylib coordinates.
 
 ---
 

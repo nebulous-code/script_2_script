@@ -1,7 +1,9 @@
+pub mod audio;
 pub mod backend;
 pub mod scene;
 pub mod timeline;
 
+pub use audio::AudioEngine;
 pub use backend::raylib_preview::RaylibPreview;
 pub use scene::{
     AnimatedTransform, Color, Easing, ImageObject, Keyframe, Object, Shape, Track, Transform, Vec2,

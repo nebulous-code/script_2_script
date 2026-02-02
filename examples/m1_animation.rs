@@ -6,8 +6,10 @@ use raylib_playground::{
 };
 
 fn main() -> Result<()> {
+    // Create a 6-second timeline sampled at 30 FPS.
     let mut timeline = Timeline::new(6.0, 30)?;
 
+    // Background layer: a big rectangle so the scene isn't empty.
     let mut background = Layer::new("background");
     background.add_clip(Clip::new(
         0.0,
@@ -21,8 +23,10 @@ fn main() -> Result<()> {
         timeline.duration,
     )?);
 
+    // Motion layer: animated clips to demonstrate easing and interpolation.
     let mut motion = Layer::new("motion");
 
+    // Circle moves from left to right with EaseInOutQuad (smooth in/out).
     let circle_transform = AnimatedTransform {
         position: Track::new(vec![
             Keyframe::new(0.0, Vec2 { x: -280.0, y: 0.0 }, Easing::EaseInOutQuad),
@@ -44,6 +48,7 @@ fn main() -> Result<()> {
         timeline.duration,
     )?);
 
+    // Image rotates with EaseOutCubic and fades in/out via opacity keyframes.
     let image_transform = AnimatedTransform {
         position: Track::from_constant(Vec2 { x: 0.0, y: -40.0 }),
         scale: Track::from_constant(Vec2 { x: 2.0, y: 2.0 }),
@@ -67,9 +72,11 @@ fn main() -> Result<()> {
         timeline.duration,
     )?);
 
+    // Layer order controls draw order: background first, motion on top.
     timeline.add_layer(background);
     timeline.add_layer(motion);
 
+    // Preview window uses fixed-dt sampling from the timeline.
     let preview = RaylibPreview::new(800, 600, Color::rgb(16, 16, 20));
     preview.run(&timeline)
 }

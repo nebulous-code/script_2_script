@@ -4,8 +4,8 @@
 
 Extend the current prototype so that, while the window is running:
 
-- `input/background.mp3` plays continuously (looped) as background music
-- `input/border.ogg` plays once whenever the ball collides with a wall (left/right/top/bottom)
+- `assets/background.mp3` plays continuously (looped) as background music
+- `assets/border.ogg` plays once whenever the ball collides with a wall (left/right/top/bottom)
 
 **Important scope note:** this phase is about **preview audio** (hearing it while the app runs).  
 It does **not** embed audio into the encoded MP4 yet. Long-term, we’ll add an “audio track export + mux” step.
@@ -82,7 +82,7 @@ Later we can support:
    - Add:
      - `enable_audio: bool` (default true)
      - `preview_realtime: bool` (default true for now)
-     - audio asset paths (default `input/background.mp3`, `input/border.ogg`)
+     - audio asset paths (default `assets/background.mp3`, `assets/border.ogg`)
 
 ---
 
@@ -101,13 +101,13 @@ Add fields:
 Defaults:
 - `enable_audio: true`
 - `preview_realtime: true`
-- `background_music_path: PathBuf::from("input/background.mp3")`
-- `bounce_sound_path: PathBuf::from("input/border.ogg")`
+- `background_music_path: PathBuf::from("assets/background.mp3")`
+- `bounce_sound_path: PathBuf::from("assets/border.ogg")`
 
 Add helper:
 - `pub fn validate_assets(&self) -> Vec<String>` returning warnings for missing files
 
-(If the `input/` folder isn’t present in your zip right now, create it and add the files there.)
+(If the `assets/` folder isn’t present in your zip right now, create it and add the files there.)
 
 ---
 

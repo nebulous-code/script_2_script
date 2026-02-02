@@ -19,6 +19,27 @@ impl RaylibPreview {
     }
 
     pub fn run(&self, timeline: &Timeline) -> Result<()> {
+        self.run_range(timeline, 0.0, timeline.duration)
+    }
+
+    pub fn run_range(&self, timeline: &Timeline, start_time: f32, end_time: f32) -> Result<()> {
+        self.run_with(timeline, start_time, end_time, |_| Ok(()))
+    }
+
+    pub fn run_with<F>(
+        &self,
+        timeline: &Timeline,
+        start_time: f32,
+        end_time: f32,
+        mut per_frame: F,
+    ) -> Result<()>
+    where
+        F: FnMut(f32) -> Result<()>,
+    {
+        if start_time < 0.0 || end_time <= start_time || end_time > timeline.duration {
+            bail!("start/end time must satisfy 0 <= start < end <= duration");
+        }
+
         let (mut rl, thread) = raylib::init()
             .size(self.width as i32, self.height as i32)
             .title("Rust Render Preview")
@@ -26,15 +47,17 @@ impl RaylibPreview {
 
         rl.set_target_fps(timeline.fps);
         let mut cache = TextureCache::new();
-        let total_frames = timeline.total_frames();
+        let dt = 1.0 / timeline.fps as f32;
+        let mut t = start_time;
 
-        for frame_index in 0..total_frames {
+        while t < end_time {
             if rl.window_should_close() {
                 break;
             }
-            let t = frame_index as f32 / timeline.fps as f32;
             let scene = timeline.sample(t)?;
             self.draw_scene(&mut rl, &thread, &mut cache, &scene)?;
+            per_frame(t)?;
+            t += dt;
         }
 
         Ok(())

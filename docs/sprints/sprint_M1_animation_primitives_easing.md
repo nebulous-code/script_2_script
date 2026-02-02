@@ -76,31 +76,31 @@ Outside the keyframe range:
 ---
 
 ## Tasks
-- [ ] Define `Easing` enum + functions:
-  - [ ] `Linear`
-  - [ ] `EaseInOutQuad`
-  - [ ] `EaseOutCubic`
-- [ ] Implement generic `Track<T>` + `Keyframe<T>`
-  - [ ] enforce strictly increasing keyframe times (return `Result`)
-  - [ ] `sample(t) -> T`
-  - [ ] clamp/hold behavior outside keyframe range
-- [ ] Add `AnimatedTransform` with tracks:
-  - [ ] position track
-  - [ ] scale track
-  - [ ] rotation track
-  - [ ] opacity track
-  - [ ] provide a “constant transform” constructor that builds a track with 1 keyframe
-- [ ] Update `Clip` to support animated transforms:
-  - [ ] simplest: `transform: AnimatedTransform` where defaults are constant tracks
-- [ ] Add `Clip::local_time(t)` helpers:
-  - [ ] `local_time(t) -> Option<f32>`: returns `Some(t-start)` if active else `None`
-  - [ ] `clamped_local_time(t) -> f32`: returns clamped `0..(end-start)` for convenience (optional)
-- [ ] Update renderer to sample the transform at global time `t`:
-  - [ ] optionally use `clip.local_time(t)` for relative track authoring patterns
-- [ ] Update example(s):
-  - [ ] circle moves across screen using `EaseInOutQuad`
-  - [ ] image rotates using `EaseOutCubic`
-  - [ ] fade-in/out via opacity
+- [x] Define `Easing` enum + functions:
+  - [x] `Linear`
+  - [x] `EaseInOutQuad`
+  - [x] `EaseOutCubic`
+- [x] Implement generic `Track<T>` + `Keyframe<T>`
+  - [x] enforce strictly increasing keyframe times (return `Result`)
+  - [x] `sample(t) -> T`
+  - [x] clamp/hold behavior outside keyframe range
+- [x] Add `AnimatedTransform` with tracks:
+  - [x] position track
+  - [x] scale track
+  - [x] rotation track
+  - [x] opacity track
+  - [x] provide a “constant transform” constructor that builds a track with 1 keyframe
+- [x] Update `Clip` to support animated transforms:
+  - [x] simplest: `transform: AnimatedTransform` where defaults are constant tracks
+- [x] Add `Clip::local_time(t)` helpers:
+  - [x] `local_time(t) -> Option<f32>`: returns `Some(t-start)` if active else `None`
+  - [x] `clamped_local_time(t) -> f32`: returns clamped `0..(end-start)` for convenience (optional)
+- [x] Update renderer to sample the transform at global time `t`:
+  - [x] optionally use `clip.local_time(t)` for relative track authoring patterns
+- [x] Update example(s):
+  - [x] circle moves across screen using `EaseInOutQuad`
+  - [x] image rotates using `EaseOutCubic`
+  - [x] fade-in/out via opacity
 
 ---
 
@@ -113,10 +113,10 @@ Outside the keyframe range:
 ---
 
 ## Acceptance Criteria
-- [ ] Motion is deterministic and matches expected keyframe interpolation.
-- [ ] Easing visibly differs from linear interpolation.
-- [ ] Strict keyframe time validation returns `Err` on invalid keyframe sequences.
-- [ ] `Clip::local_time` is usable for authoring reusable “clip recipes.”
+- [x] Motion is deterministic and matches expected keyframe interpolation.
+- [x] Easing visibly differs from linear interpolation.
+- [x] Strict keyframe time validation returns `Err` on invalid keyframe sequences.
+- [x] `Clip::local_time` is usable for authoring reusable “clip recipes.”
 
 ---
 

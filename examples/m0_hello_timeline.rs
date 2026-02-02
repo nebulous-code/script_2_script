@@ -21,6 +21,7 @@ fn main() -> Result<()> {
             //color: Color::rgb(128, 5, 128),
             color: Color::rgba(128, 4, 128, 255),
         }),
+        // Constant transform = no animation (static placement).
         AnimatedTransform::constant(Transform::default()),
         timeline.duration,
     )?);
@@ -71,6 +72,7 @@ fn main() -> Result<()> {
         timeline.duration,
     )?);
 
+    // Layer order = draw order (background → mid → top).
     timeline.add_layer(background);
     timeline.add_layer(mid);
     timeline.add_layer(top);

@@ -41,35 +41,35 @@ This establishes the “interactive iteration loop.”
 
 ---
 
-## Tasks (Agent Checklist)
-- [ ] Implement CLI parsing (if not already):
-  - [ ] `--start_time`, `--end_time`
-  - [ ] `--preview` default mode (optional if preview is default)
-- [ ] Implement preview time stepping:
-  - [ ] set `dt = 1.0 / fps`
-  - [ ] each frame: `t = t + dt`
-  - [ ] stop at `end_time`
-  - [ ] note: preview may render slower than realtime on slow machines; correctness > wall clock
-- [ ] Add `AudioEngine` module returning Results:
-  - [ ] `AudioEngine::new(...) -> Result<AudioEngine, AudioError>`
-  - [ ] initializes audio device
-  - [ ] loads music from `input/background.mp3`
-  - [ ] loads sfx from `input/border.ogg`
-  - [ ] `start_background(looped: bool)`
-  - [ ] `update()` calls `UpdateMusicStream` every frame
-  - [ ] `play_bounce()` plays the sfx
-  - [ ] cleanup on drop
-- [ ] Wire preview renderer to audio:
-  - [ ] call `audio.update()` each frame
-  - [ ] trigger sfx via a deterministic test event:
-    - [ ] e.g. play once when integer seconds tick over
-- [ ] Add `examples/m2_preview_audio.rs`:
-  - [ ] shows visuals
-  - [ ] plays background music
-  - [ ] plays bounce sfx on schedule
-- [ ] Update README / examples:
-  - [ ] document fixed-dt preview
-  - [ ] document that audio init/load returns Result (caller chooses error handling policy)
+## Tasks
+- [x] Implement CLI parsing (if not already):
+  - [x] `--start_time`, `--end_time`
+  - [x] `--preview` default mode (optional if preview is default)
+- [x] Implement preview time stepping:
+  - [x] set `dt = 1.0 / fps`
+  - [x] each frame: `t = t + dt`
+  - [x] stop at `end_time`
+  - [x] note: preview may render slower than realtime on slow machines; correctness > wall clock
+- [x] Add `AudioEngine` module returning Results:
+  - [x] `AudioEngine::new(...) -> Result<AudioEngine, AudioError>`
+  - [x] initializes audio device
+  - [x] loads music from `assets/background.mp3`
+  - [x] loads sfx from `assets/border.ogg`
+  - [x] `start_background(looped: bool)`
+  - [x] `update()` calls `UpdateMusicStream` every frame
+  - [x] `play_bounce()` plays the sfx
+  - [x] cleanup on drop
+- [x] Wire preview renderer to audio:
+  - [x] call `audio.update()` each frame
+  - [x] trigger sfx via a deterministic test event:
+    - [x] e.g. play once when integer seconds tick over
+- [x] Add `examples/m2_preview_audio.rs`:
+  - [x] shows visuals
+  - [x] plays background music
+  - [x] plays bounce sfx on schedule
+- [x] Update README / examples:
+  - [x] document fixed-dt preview
+  - [x] document that audio init/load returns Result (caller chooses error handling policy)
 
 ---
 
@@ -82,11 +82,11 @@ This establishes the “interactive iteration loop.”
 ---
 
 ## Acceptance Criteria
-- [ ] Background MP3 loops and plays during preview (when assets exist).
-- [ ] SFX can play multiple times without crashing.
-- [ ] Preview respects `--start_time` and `--end_time`.
-- [ ] Preview time uses fixed dt (`1/fps`) and is deterministic given fps + start/end.
-- [ ] Missing/invalid audio assets cause `AudioEngine::new` to return `Err` (no hidden panics).
+- [x] Background MP3 loops and plays during preview (when assets exist).
+- [x] SFX can play multiple times without crashing.
+- [x] Preview respects `--start_time` and `--end_time`.
+- [x] Preview time uses fixed dt (`1/fps`) and is deterministic given fps + start/end.
+- [x] Missing/invalid audio assets cause `AudioEngine::new` to return `Err` (no hidden panics).
 
 ---
 
