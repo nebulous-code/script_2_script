@@ -38,6 +38,12 @@ impl Color {
     pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
+
+    // CSS-style alpha (0.0..=1.0) with RGB in 0..=255.
+    pub fn rgba_css(r: u8, g: u8, b: u8, a: f32) -> Self {
+        let alpha = (a.clamp(0.0, 1.0) * 255.0).round() as u8;
+        Self { r, g, b, a: alpha }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

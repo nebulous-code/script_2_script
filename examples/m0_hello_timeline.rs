@@ -17,7 +17,8 @@ fn main() -> Result<()> {
             width: 700.0,
             height: 420.0,
             // Note: this clip covers the screen, so it overrides the preview clear color.
-            color: Color::rgba(106, 1, 108, 1),
+            //color: Color::rgb(128, 5, 128),
+            color: Color::rgba(128, 4, 128, 255),
         }),
         Transform::default(),
         timeline.duration,
@@ -30,7 +31,7 @@ fn main() -> Result<()> {
         6.5,
         Object::Shape(Shape::Circle {
             radius: 80.0,
-            color: Color::rgb(235, 100, 80),
+            color: Color::rgba_css(235, 101, 80, 0.7),
         }),
         Transform {
             // Graph coords: (0,0) is center; +Y is up.
