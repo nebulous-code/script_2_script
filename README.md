@@ -42,6 +42,14 @@ cargo run --example m4_render_audio -- --render --start_time 0 --end_time 25
 
 This renders video-only frames, mixes audio offline into a WAV, trims if needed, then muxes audio + video into the final MP4.
 
+## M5 Video Clip Stitching
+
+```bash
+cargo run --example m5_video_clips -- --width 800 --height 600 --fps 30
+```
+
+This stitches multiple mp4 clips into a single base video using ffmpeg concat, with overlap handling and optional trims.
+
 ## Coordinate System (Graph Coords)
 
 All public APIs use center-origin graph coordinates:
@@ -73,8 +81,11 @@ examples/
   m2_preview_audio.rs
   m3_render_video.rs
   m4_render_audio.rs
+  m5_video_clips.rs
 assets/
   logo.png
+  clip_a.mp4
+  clip_b.mp4
 ```
 
 ## Notes
