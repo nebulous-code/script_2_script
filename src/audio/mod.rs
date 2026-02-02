@@ -3,6 +3,10 @@ use std::path::Path;
 
 use anyhow::{bail, Context, Result};
 
+pub mod timeline;
+
+pub use timeline::{MusicTrack, SfxEvent};
+
 pub struct AudioEngine {
     music: raylib::ffi::Music,
     bounce: raylib::ffi::Sound,

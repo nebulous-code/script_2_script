@@ -34,6 +34,14 @@ cargo run --example m3_render_video -- --render --start_time 0 --end_time 6
 
 This renders a video-only MP4 via ffmpeg using deterministic sampling.
 
+## M4 Render (Video + Audio)
+
+```bash
+cargo run --example m4_render_audio -- --render --start_time 0 --end_time 25
+```
+
+This renders video-only frames, mixes audio offline into a WAV, trims if needed, then muxes audio + video into the final MP4.
+
 ## Coordinate System (Graph Coords)
 
 All public APIs use center-origin graph coordinates:
@@ -64,6 +72,7 @@ examples/
   m1_animation.rs
   m2_preview_audio.rs
   m3_render_video.rs
+  m4_render_audio.rs
 assets/
   logo.png
 ```

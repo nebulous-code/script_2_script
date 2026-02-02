@@ -80,43 +80,43 @@ This is the key sprint that makes the output shareable.
 ## Tasks (Agent Checklist)
 
 ### Data model
-- [ ] Define audio timeline types:
-  - [ ] `MusicTrack { path, start, end, loop, volume }`
-  - [ ] `SfxEvent { path, time, volume }`
-- [ ] Define SFX event count warning:
-  - [ ] if `events.len() > 100`, log a warning (do not fail)
+- [x] Define audio timeline types:
+  - [x] `MusicTrack { path, start, end, loop, volume }`
+  - [x] `SfxEvent { path, time, volume }`
+- [x] Define SFX event count warning:
+  - [x] if `events.len() > 100`, log a warning (do not fail)
 
 ### Event collection (render mode)
-- [ ] Implement event collection for the bouncing ball example:
-  - [ ] during deterministic render loop, detect wall collisions and record event time `t`
-  - [ ] ensure corner bounces create 1 event not 2
-  - [ ] record only events within `[start_time, end_time]` for the final segment render
+- [x] Implement event collection for the bouncing ball example:
+  - [x] during deterministic render loop, detect wall collisions and record event time `t`
+  - [x] ensure corner bounces create 1 event not 2
+  - [x] record only events within `[start_time, end_time]` for the final segment render
     - (optional simplification) if generating full audio, record full and trim later
 
 ### ffmpeg audio render (offline)
-- [ ] Implement ffmpeg audio render to **WAV**:
-  - [ ] background mp3 is looped or bounded to match `duration`
-  - [ ] delay each SFX by event time (ms) using `adelay`
-  - [ ] mix background + sfx using `amix`
-  - [ ] output to `audio_full.wav`
-- [ ] Implement trimming step (if `start_time/end_time` are not the full range):
-  - [ ] trim `audio_full.wav` → `audio_clip.wav` using `-ss` and `-t`/`-to`
-  - [ ] ensure duration matches the video clip duration
+- [x] Implement ffmpeg audio render to **WAV**:
+  - [x] background mp3 is looped or bounded to match `duration`
+  - [x] delay each SFX by event time (ms) using `adelay`
+  - [x] mix background + sfx using `amix`
+  - [x] output to `audio_full.wav`
+- [x] Implement trimming step (if `start_time/end_time` are not the full range):
+  - [x] trim `audio_full.wav` → `audio_clip.wav` using `-ss` and `-t`/`-to`
+  - [x] ensure duration matches the video clip duration
 
 ### Video+Audio mux
-- [ ] Implement mux:
-  - [ ] mux `video_clip.mp4` + `audio_clip.wav` → `output.mp4`
-  - [ ] encode audio to AAC during mux (or equivalent)
-  - [ ] ensure `-shortest` is used to avoid trailing audio/video mismatch
+- [x] Implement mux:
+  - [x] mux `video_clip.mp4` + `audio_clip.wav` → `output.mp4`
+  - [x] encode audio to AAC during mux (or equivalent)
+  - [x] ensure `-shortest` is used to avoid trailing audio/video mismatch
 
 ### Single render command path
-- [ ] Provide a single render command path:
-  - [ ] `--render` produces `output.mp4` with audio included
-  - [ ] optionally keep intermediates with `--keep-temp`
+- [x] Provide a single render command path:
+  - [x] `--render` produces `output.mp4` with audio included
+  - [x] optionally keep intermediates with `--keep-temp`
 
 ### Diagnostics
-- [ ] On ffmpeg failure:
-  - [ ] surface ffmpeg stderr in the returned error (do not fail silently)
+- [x] On ffmpeg failure:
+  - [x] surface ffmpeg stderr in the returned error (do not fail silently)
 
 ---
 
@@ -131,11 +131,11 @@ This is the key sprint that makes the output shareable.
 ---
 
 ## Acceptance Criteria
-- [ ] Background audio is audible throughout the final mp4 segment.
-- [ ] Bounce SFX occurs at correct times (visually aligned with bounces).
-- [ ] Output duration matches `[start_time, end_time]`.
-- [ ] Render pipeline is deterministic (same input -> same timestamps -> same output).
-- [ ] Preview does not run ffmpeg or generate WAV files; it uses realtime audio playback.
+- [x] Background audio is audible throughout the final mp4 segment.
+- [x] Bounce SFX occurs at correct times (visually aligned with bounces).
+- [x] Output duration matches `[start_time, end_time]`.
+- [x] Render pipeline is deterministic (same input -> same timestamps -> same output).
+- [x] Preview does not run ffmpeg or generate WAV files; it uses realtime audio playback.
 
 ---
 

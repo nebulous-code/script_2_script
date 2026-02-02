@@ -59,29 +59,29 @@ Add **render mode** that outputs **video-only MP4** via ffmpeg:
 ---
 
 ## Tasks (Agent Checklist)
-- [ ] Implement/confirm deterministic render loop:
-  - [ ] `frames = floor((end-start)*fps)`
-  - [ ] for each `i`: `t = start + i/fps`
-  - [ ] sample timeline at `t` and render to an offscreen buffer
-- [ ] Capture RGBA buffer per frame
-  - [ ] ensure correct pixel format RGBA
-  - [ ] handle vertical flip (either in capture or via ffmpeg args, e.g. `-vf vflip`)
-- [ ] Implement `FfmpegVideoEncoder`:
-  - [ ] args: width/height/fps/output_path
-  - [ ] spawn ffmpeg process
-  - [ ] write each frame (exact byte size)
-  - [ ] finalize process, check exit code
-  - [ ] on failure: emit stderr in error return
-- [ ] Implement output path resolution:
-  - [ ] If CLI output is set: use it
-  - [ ] Else if script config output is set: use it
-  - [ ] Else default to `<script_stem>.mp4`
-- [ ] Implement temp intermediate behavior:
-  - [ ] define intermediate paths (e.g., `video_only.mp4` in a temp dir)
-  - [ ] `--keep-temp` retains them; default removes them on success
-- [ ] Add `examples/m3_render_video.rs` (or equivalent render entry point):
+- [x] Implement/confirm deterministic render loop:
+  - [x] `frames = floor((end-start)*fps)`
+  - [x] for each `i`: `t = start + i/fps`
+  - [x] sample timeline at `t` and render to an offscreen buffer
+- [x] Capture RGBA buffer per frame
+  - [x] ensure correct pixel format RGBA
+  - [x] handle vertical flip (either in capture or via ffmpeg args, e.g. `-vf vflip`)
+- [x] Implement `FfmpegVideoEncoder`:
+  - [x] args: width/height/fps/output_path
+  - [x] spawn ffmpeg process
+  - [x] write each frame (exact byte size)
+  - [x] finalize process, check exit code
+  - [x] on failure: emit stderr in error return
+- [x] Implement output path resolution:
+  - [x] If CLI output is set: use it
+  - [x] Else if script config output is set: use it
+  - [x] Else default to `<script_stem>.mp4`
+- [x] Implement temp intermediate behavior:
+  - [x] define intermediate paths (e.g., `video_only.mp4` in a temp dir)
+  - [x] `--keep-temp` retains them; default removes them on success
+- [x] Add `examples/m3_render_video.rs` (or equivalent render entry point):
   - Note: Demo code should include clear, beginner-friendly comments explaining what each section does.
-  - [ ] renders a short scene to mp4 using render mode
+  - [x] renders a short scene to mp4 using render mode
 
 ---
 
@@ -91,12 +91,12 @@ Add **render mode** that outputs **video-only MP4** via ffmpeg:
 ---
 
 ## Acceptance Criteria
-- [ ] Running render produces an MP4 video (no audio) that plays correctly.
-- [ ] Output default name follows the script stem:
+- [x] Running render produces an MP4 video (no audio) that plays correctly.
+- [x] Output default name follows the script stem:
   - `my_scene.rs` → `my_scene.mp4` when no output is provided.
-- [ ] `--start_time` and `--end_time` correctly clip render output.
-- [ ] `--keep-temp` (or config equivalent) retains intermediates; default cleans them up.
-- [ ] On ffmpeg failure, stderr is surfaced and the process returns a failure Result (no silent success).
+- [x] `--start_time` and `--end_time` correctly clip render output.
+- [x] `--keep-temp` (or config equivalent) retains intermediates; default cleans them up.
+- [x] On ffmpeg failure, stderr is surfaced and the process returns a failure Result (no silent success).
 
 ---
 
