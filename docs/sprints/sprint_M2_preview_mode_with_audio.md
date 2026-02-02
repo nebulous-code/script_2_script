@@ -24,53 +24,77 @@ This establishes the “interactive iteration loop.”
 ### Out-of-scope
 - Offline audio rendering (next sprint)
 - Automatic collision/overlap event system
+- Scrubbing/jumping UI (alpha will use start/end range instead)
+
+---
+
+## Locked decisions (from review)
+- **Preview time advances using a fixed dt** (`dt = 1.0 / fps`), not wall-clock elapsed time.
+  - This keeps preview behavior consistent even if:
+    - the machine is slow
+    - fps changes in config
+    - future “sped up playback” is added
+- **No scrubbing/jumping support in alpha**
+  - Use `--start_time` and `--end_time` for precise ranges instead.
+- **Missing audio assets return Result**
+  - Audio initialization and asset loading return `Result` so callers can decide whether to hard-fail or degrade gracefully.
 
 ---
 
 ## Tasks (Agent Checklist)
 - [ ] Implement CLI parsing (if not already):
-  - [ ] `--start_time`, `--end_time`, `--preview` default
-- [ ] Add `AudioEngine` module:
-  - [ ] `init_audio_device`
-  - [ ] load music stream from `input/background.mp3`
-  - [ ] load sound from `input/border.ogg`
-  - [ ] `update()` calls `UpdateMusicStream`
-  - [ ] `play_sfx()` plays bounce sound
+  - [ ] `--start_time`, `--end_time`
+  - [ ] `--preview` default mode (optional if preview is default)
+- [ ] Implement preview time stepping:
+  - [ ] set `dt = 1.0 / fps`
+  - [ ] each frame: `t = t + dt`
+  - [ ] stop at `end_time`
+  - [ ] note: preview may render slower than realtime on slow machines; correctness > wall clock
+- [ ] Add `AudioEngine` module returning Results:
+  - [ ] `AudioEngine::new(...) -> Result<AudioEngine, AudioError>`
+  - [ ] initializes audio device
+  - [ ] loads music from `input/background.mp3`
+  - [ ] loads sfx from `input/border.ogg`
+  - [ ] `start_background(looped: bool)`
+  - [ ] `update()` calls `UpdateMusicStream` every frame
+  - [ ] `play_bounce()` plays the sfx
   - [ ] cleanup on drop
-- [ ] Wire preview renderer to:
-  - [ ] pace at target fps
-  - [ ] advance `t` from start_time to end_time
+- [ ] Wire preview renderer to audio:
   - [ ] call `audio.update()` each frame
-- [ ] Add demo event scheduling:
-  - [ ] `if floor(t) changes -> play bounce` (for testing)
+  - [ ] trigger sfx via a deterministic test event:
+    - [ ] e.g. play once when integer seconds tick over
+- [ ] Add `examples/m2_preview_audio.rs`:
+  - [ ] shows visuals
+  - [ ] plays background music
+  - [ ] plays bounce sfx on schedule
 - [ ] Update README / examples:
-  - [ ] document that preview audio is realtime
+  - [ ] document fixed-dt preview
+  - [ ] document that audio init/load returns Result (caller chooses error handling policy)
 
 ---
 
 ## Deliverables
-- `examples/m2_preview_audio.rs`:
-  - shows visuals
-  - plays background music
-  - plays bounce sfx on schedule
+- `examples/m2_preview_audio.rs` demonstrating:
+  - fixed dt time progression
+  - background mp3 playback
+  - repeated sfx playback
 
 ---
 
 ## Acceptance Criteria
-- [ ] Background MP3 loops and plays continuously during preview.
+- [ ] Background MP3 loops and plays during preview (when assets exist).
 - [ ] SFX can play multiple times without crashing.
 - [ ] Preview respects `--start_time` and `--end_time`.
-- [ ] No need to write files; purely preview.
+- [ ] Preview time uses fixed dt (`1/fps`) and is deterministic given fps + start/end.
+- [ ] Missing/invalid audio assets cause `AudioEngine::new` to return `Err` (no hidden panics).
 
 ---
 
 ## Risks / Notes
-- MP3 support depends on raylib build; ensure your raylib distribution supports it.
-- Realtime preview is not deterministic w.r.t. wall clock—but the sampled timeline is deterministic.
+- MP3 support depends on the raylib build; if mp3 is unsupported in a given environment, that should surface as an `Err`.
+- Fixed-dt preview means wall-clock speed may not match realtime if rendering is slow (acceptable for alpha).
 
 ---
 
 ## Open Decisions
-- Should preview time advance using fixed dt (`1/fps`) or actual elapsed time?
-- Should preview support scrubbing/jumping, or only start/end range for now?
-- How should missing audio assets behave (warn & continue vs hard error)?
+- None for M2 (time stepping, scrubbing, and missing-asset behavior are now locked in).
