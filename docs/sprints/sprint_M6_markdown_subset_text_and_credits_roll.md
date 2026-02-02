@@ -14,9 +14,14 @@ Add text rendering with a markdown subset and credits-roll capability:
   - `*italic*`
   - `__underline__`
   - newline support
+  - **nested formatting supported** (e.g., `**bold *italic***`) for this subset
+- Fonts:
+  - a `FontFamily` concept with optional variants (regular/bold/italic/bold-italic)
+  - deterministic fallback behavior when variants are missing
 - Text layout:
   - wraps within a bounding width
   - preserves newlines
+  - left-justified only (no justification stretching)
 - Rendering:
   - multiple styled “runs” drawn sequentially
 - Credits roll:
@@ -24,26 +29,60 @@ Add text rendering with a markdown subset and credits-roll capability:
 
 ### Out-of-scope
 - Full markdown spec (lists, code blocks, links)
-- Advanced text shaping / kerning / font fallback
+- Advanced text shaping / kerning / font fallback across multiple font families
 - Rich layout (columns, tables)
+- Hyphenation / dictionary-based word breaking
 
 ---
 
 ## Tasks (Agent Checklist)
+
+### Font support
+- [ ] Define a `FontFamily` object (or similar):
+  - [ ] `regular` font is required
+  - [ ] `bold`, `italic`, `bold_italic` are optional
+  - [ ] Provide a method like `resolve(style_flags) -> &Font` with fallback rules:
+    - [ ] if requested face exists, use it
+    - [ ] otherwise fallback to `regular`
+  - [ ] Document fallback behavior (missing bold/italic renders as regular)
+
+### Styled text parsing
 - [ ] Define a `StyledText` object:
   - [ ] input: raw markdown string
   - [ ] output: `Vec<TextRun { text, style_flags }>`
-- [ ] Implement parser for subset:
-  - [ ] nested markers are optional; define behavior (no nesting allowed is fine)
-- [ ] Implement text layout:
-  - [ ] break into lines respecting `\n`
-  - [ ] wrap lines by max width (approx measurement is acceptable for alpha)
+- [ ] Implement parser for subset with nesting:
+  - [ ] supported markers: `**` (bold), `*` (italic), `__` (underline)
+  - [ ] use a simple style-stack approach
+  - [ ] best-effort parsing:
+    - [ ] malformed/unbalanced markers do not hard-error
+    - [ ] treat unknown/invalid sequences as literal text (or degrade gracefully)
+
+### Text layout
+- [ ] Implement line breaking:
+  - [ ] split on `\n` (preserve explicit newlines)
+  - [ ] greedy word-wrap by whitespace within a bounding max width
+  - [ ] **fallback behavior for long tokens**:
+    - [ ] if a single token exceeds the max width, allow character wrap for that token only
+    - [ ] no hyphen insertion required for alpha
+- [ ] Width measurement:
+  - [ ] approximate measurement is acceptable for alpha, but must be deterministic
+  - [ ] document limitations
+
+### Rendering
 - [ ] Render runs:
-  - [ ] draw runs in order with correct font style
-  - [ ] underline can be simulated by drawing a line under the run
-- [ ] Credits roll example:
+  - [ ] draw runs in order with correct font face from `FontFamily`
+  - [ ] underline simulated by drawing a line under the run (per-run)
+  - [ ] ensure opacity and transforms apply consistently
+- [ ] Verify compatibility:
+  - [ ] works in preview (raylib window)
+  - [ ] works in render output (ffmpeg pipeline)
+
+### Credits roll example
+- [ ] Add `examples/m6_credits_roll.rs`:
   - [ ] load `credits.md`
-  - [ ] scroll upward from bottom to top over N seconds
+  - [ ] parse styled runs
+  - [ ] layout into lines within a bounding width
+  - [ ] scroll upward from bottom to top over N seconds using the existing animation system
 
 ---
 
@@ -53,20 +92,21 @@ Add text rendering with a markdown subset and credits-roll capability:
 ---
 
 ## Acceptance Criteria
-- [ ] Bold/italic/underline visibly differ.
-- [ ] Newlines are preserved, wrapping works.
+- [ ] Bold/italic/underline visibly differ (when font variants exist; otherwise documented fallback).
+- [ ] Nested formatting works for the supported subset.
+- [ ] Newlines are preserved; wrapping works and is deterministic.
+- [ ] Long tokens do not overflow the bounding box (character-wrap fallback).
 - [ ] Credits scroll smoothly and deterministically (based on time `t`).
-- [ ] Works in preview and render output.
+- [ ] Output looks consistent in preview and in rendered MP4 output.
 
 ---
 
 ## Risks / Notes
-- Font styling support depends on your rendering backend; you may need separate font files for bold/italic.
-- Text width measurement can be approximate at first; document limitations.
+- Font styling depends on separate font files in most pipelines; alpha uses `FontFamily` with explicit optional variants.
+- Text width measurement can be approximate; document limitations.
+- Full markdown and rich typography remain post-alpha.
 
 ---
 
 ## Open Decisions
-- How to supply fonts (one font file vs separate bold/italic variants)?
-- Do we allow nested formatting like `**bold *italic***` in alpha?
-- Should wrapping be greedy word-wrap only, or allow character wrap for long tokens?
+- None for M6 (font family + fallback, nested formatting, and wrap behavior are now locked in).
