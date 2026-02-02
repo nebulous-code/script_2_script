@@ -32,8 +32,8 @@ fn main() -> Result<()> {
     let mut motion = Layer::new("motion");
     let radius = 60.0;
     let bounds = Bounds::new(800.0, 600.0, radius);
-    let mut pos = Vec2 { x: -200.0, y: 80.0 };
-    let mut vel = Vec2 { x: 220.0, y: 170.0 };
+    let start_pos = Vec2 { x: -200.0, y: 80.0 };
+    let start_vel = Vec2 { x: 220.0, y: 170.0 };
 
     // Cycle through red → yellow → green → cyan → blue → magenta.
     let colors = [
@@ -45,42 +45,52 @@ fn main() -> Result<()> {
         Color::rgb(255, 0, 255),
     ];
 
-    // Collect SFX events while building the bouncing path.
-    let mut sfx_events = Vec::new();
+    // Precompute the full bounce path and SFX events for the whole timeline.
+    let samples =
+        build_bounce_samples(timeline.duration, timeline.fps, start_pos, start_vel, bounds);
+
+    let sfx_events = samples
+        .bounce_times
+        .iter()
+        .map(|time| SfxEvent {
+            path: PathBuf::from("assets/border.ogg"),
+            time: *time,
+            volume: 0.7,
+        })
+        .collect::<Vec<_>>();
+
+    // Split the timeline into color segments, with cross-fades.
     let segment = timeline.duration / colors.len() as f32;
+    let fade = (segment * 0.2).min(1.0);
+
     for (i, color) in colors.iter().enumerate() {
-        let start = i as f32 * segment;
-        let end = if i == colors.len() - 1 {
+        let base_start = i as f32 * segment;
+        let base_end = if i == colors.len() - 1 {
             timeline.duration
         } else {
             (i + 1) as f32 * segment
         };
 
-        // Build a fixed-dt bounce path for this color segment.
-        let (track, events, next_pos, next_vel) =
-            build_bounce_track(start, end, timeline.fps, pos, vel, bounds)?;
-        pos = next_pos;
-        vel = next_vel;
+        let clip_start = (base_start - fade).max(0.0);
+        let clip_end = (base_end + fade).min(timeline.duration);
+        let fade_in = base_start - clip_start;
+        let fade_out = clip_end - base_end;
 
-        // Each bounce time becomes an SFX event.
-        sfx_events.extend(events.into_iter().map(|time| SfxEvent {
-            path: PathBuf::from("assets/border.ogg"),
-            time,
-            volume: 0.7,
-        }));
+        let position = track_from_samples(&samples.positions, clip_start, clip_end, timeline.fps)?;
+        let opacity = opacity_track(clip_end - clip_start, fade_in, fade_out)?;
 
         motion.add_clip(Clip::new(
-            start,
-            end,
+            clip_start,
+            clip_end,
             Object::Shape(Shape::Circle {
                 radius,
                 color: *color,
             }),
             AnimatedTransform {
-                position: track,
+                position,
                 scale: Track::from_constant(Vec2 { x: 1.0, y: 1.0 }),
                 rotation: Track::from_constant(0.0),
-                opacity: Track::from_constant(1.0),
+                opacity,
             },
             timeline.duration,
         )?);
@@ -216,22 +226,25 @@ impl Bounds {
     }
 }
 
-fn build_bounce_track(
-    start: f32,
-    end: f32,
+struct BounceSamples {
+    positions: Vec<Vec2>,
+    bounce_times: Vec<f32>,
+}
+
+fn build_bounce_samples(
+    duration: f32,
     fps: u32,
     mut pos: Vec2,
     mut vel: Vec2,
     bounds: Bounds,
-) -> Result<(Track<Vec2>, Vec<f32>, Vec2, Vec2)> {
+) -> BounceSamples {
     let dt = 1.0 / fps as f32;
-    let frames = ((end - start) * fps as f32).floor() as u32;
-    let mut keys = Vec::with_capacity(frames as usize + 1);
-    let mut events = Vec::new();
+    let frames = (duration * fps as f32).floor() as u32;
+    let mut positions = Vec::with_capacity(frames as usize + 1);
+    let mut bounce_times = Vec::new();
+    positions.push(pos);
 
-    keys.push(Keyframe::new(0.0, pos, Easing::Linear));
-
-    for i in 1..=frames {
+    for i in 0..frames {
         pos.x += vel.x * dt;
         pos.y += vel.y * dt;
 
@@ -256,14 +269,56 @@ fn build_bounce_track(
             bounced = true;
         }
 
-        let t = i as f32 * dt;
-        keys.push(Keyframe::new(t, pos, Easing::Linear));
+        let t = (i + 1) as f32 * dt;
+        positions.push(pos);
         if bounced {
-            events.push(start + t);
+            bounce_times.push(t);
         }
     }
 
-    Ok((Track::new(keys)?, events, pos, vel))
+    BounceSamples {
+        positions,
+        bounce_times,
+    }
+}
+
+fn track_from_samples(
+    positions: &[Vec2],
+    start: f32,
+    end: f32,
+    fps: u32,
+) -> Result<Track<Vec2>> {
+    let start_idx = (start * fps as f32).floor() as usize;
+    let end_idx = (end * fps as f32).floor() as usize;
+    let dt = 1.0 / fps as f32;
+    let mut keys = Vec::with_capacity(end_idx.saturating_sub(start_idx) + 1);
+
+    for i in start_idx..=end_idx.min(positions.len() - 1) {
+        let t = (i - start_idx) as f32 * dt;
+        keys.push(Keyframe::new(t, positions[i], Easing::Linear));
+    }
+
+    Track::new(keys)
+}
+
+fn opacity_track(duration: f32, fade_in: f32, fade_out: f32) -> Result<Track<f32>> {
+    let mut keys = Vec::new();
+    if fade_in > 0.0 {
+        keys.push(Keyframe::new(0.0, 0.0, Easing::Linear));
+        keys.push(Keyframe::new(fade_in, 1.0, Easing::Linear));
+    } else {
+        keys.push(Keyframe::new(0.0, 1.0, Easing::Linear));
+    }
+
+    if fade_out > 0.0 {
+        let start = (duration - fade_out).max(0.0);
+        if start > keys.last().map(|k| k.time).unwrap_or(0.0) {
+            keys.push(Keyframe::new(start, 1.0, Easing::Linear));
+        }
+        keys.push(Keyframe::new(duration, 0.0, Easing::Linear));
+    }
+
+    Track::new(keys)
 }
 
 fn temp_output_path(output_path: &Path, name: &str) -> PathBuf {

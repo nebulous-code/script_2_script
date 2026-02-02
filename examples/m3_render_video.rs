@@ -31,8 +31,8 @@ fn main() -> Result<()> {
     let mut motion = Layer::new("motion");
     let radius = 60.0;
     let bounds = Bounds::new(800.0, 600.0, radius);
-    let mut pos = Vec2 { x: -200.0, y: 80.0 };
-    let mut vel = Vec2 { x: 220.0, y: 170.0 };
+    let start_pos = Vec2 { x: -200.0, y: 80.0 };
+    let start_vel = Vec2 { x: 220.0, y: 170.0 };
 
     // Color cycle hits red → yellow → green → cyan → blue → magenta.
     let colors = [
@@ -44,35 +44,42 @@ fn main() -> Result<()> {
         Color::rgb(255, 0, 255),   // magenta
     ];
 
-    // Split the 25 seconds evenly across the color segments.
+    // Precompute the full bounce path for the whole timeline.
+    let samples = build_bounce_samples(timeline.duration, timeline.fps, start_pos, start_vel, bounds);
+
+    // Split the 25 seconds evenly across the color segments, with cross-fades.
     let segment = timeline.duration / colors.len() as f32;
+    let fade = (segment * 0.2).min(1.0);
+
     for (i, color) in colors.iter().enumerate() {
-        let start = i as f32 * segment;
-        let end = if i == colors.len() - 1 {
+        let base_start = i as f32 * segment;
+        let base_end = if i == colors.len() - 1 {
             timeline.duration
         } else {
             (i + 1) as f32 * segment
         };
 
-        // Precompute the bouncing path for this segment at fixed dt = 1/fps.
-        let (track, next_pos, next_vel) =
-            build_bounce_track(start, end, timeline.fps, pos, vel, bounds)?;
-        pos = next_pos;
-        vel = next_vel;
+        let clip_start = (base_start - fade).max(0.0);
+        let clip_end = (base_end + fade).min(timeline.duration);
+        let fade_in = base_start - clip_start;
+        let fade_out = clip_end - base_end;
 
-        // Each segment is its own clip, using the precomputed position track.
+        let position = track_from_samples(&samples.positions, clip_start, clip_end, timeline.fps)?;
+        let opacity = opacity_track(clip_end - clip_start, fade_in, fade_out)?;
+
+        // Each segment is its own clip, with opacity cross-fades between colors.
         motion.add_clip(Clip::new(
-            start,
-            end,
+            clip_start,
+            clip_end,
             Object::Shape(Shape::Circle {
                 radius,
                 color: *color,
             }),
             AnimatedTransform {
-                position: track,
+                position,
                 scale: Track::from_constant(Vec2 { x: 1.0, y: 1.0 }),
                 rotation: Track::from_constant(0.0),
-                opacity: Track::from_constant(1.0),
+                opacity,
             },
             timeline.duration,
         )?);
@@ -130,23 +137,23 @@ impl Bounds {
     }
 }
 
-fn build_bounce_track(
-    start: f32,
-    end: f32,
+struct BounceSamples {
+    positions: Vec<Vec2>,
+}
+
+fn build_bounce_samples(
+    duration: f32,
     fps: u32,
     mut pos: Vec2,
     mut vel: Vec2,
     bounds: Bounds,
-) -> Result<(Track<Vec2>, Vec2, Vec2)> {
-    // Fixed-dt simulation so the render is deterministic.
+) -> BounceSamples {
     let dt = 1.0 / fps as f32;
-    let frames = ((end - start) * fps as f32).floor() as u32;
-    let mut keys = Vec::with_capacity(frames as usize + 1);
+    let frames = (duration * fps as f32).floor() as u32;
+    let mut positions = Vec::with_capacity(frames as usize + 1);
+    positions.push(pos);
 
-    keys.push(Keyframe::new(0.0, pos, Easing::Linear));
-
-    for i in 1..=frames {
-        // Advance position and bounce against the frame edges.
+    for _ in 0..frames {
         pos.x += vel.x * dt;
         pos.y += vel.y * dt;
 
@@ -166,11 +173,49 @@ fn build_bounce_track(
             vel.y = -vel.y.abs();
         }
 
-        let t = i as f32 * dt;
-        keys.push(Keyframe::new(t, pos, Easing::Linear));
+        positions.push(pos);
     }
 
-    Ok((Track::new(keys)?, pos, vel))
+    BounceSamples { positions }
+}
+
+fn track_from_samples(
+    positions: &[Vec2],
+    start: f32,
+    end: f32,
+    fps: u32,
+) -> Result<Track<Vec2>> {
+    let start_idx = (start * fps as f32).floor() as usize;
+    let end_idx = (end * fps as f32).floor() as usize;
+    let dt = 1.0 / fps as f32;
+    let mut keys = Vec::with_capacity(end_idx.saturating_sub(start_idx) + 1);
+
+    for i in start_idx..=end_idx.min(positions.len() - 1) {
+        let t = (i - start_idx) as f32 * dt;
+        keys.push(Keyframe::new(t, positions[i], Easing::Linear));
+    }
+
+    Track::new(keys)
+}
+
+fn opacity_track(duration: f32, fade_in: f32, fade_out: f32) -> Result<Track<f32>> {
+    let mut keys = Vec::new();
+    if fade_in > 0.0 {
+        keys.push(Keyframe::new(0.0, 0.0, Easing::Linear));
+        keys.push(Keyframe::new(fade_in, 1.0, Easing::Linear));
+    } else {
+        keys.push(Keyframe::new(0.0, 1.0, Easing::Linear));
+    }
+
+    if fade_out > 0.0 {
+        let start = (duration - fade_out).max(0.0);
+        if start > keys.last().map(|k| k.time).unwrap_or(0.0) {
+            keys.push(Keyframe::new(start, 1.0, Easing::Linear));
+        }
+        keys.push(Keyframe::new(duration, 0.0, Easing::Linear));
+    }
+
+    Track::new(keys)
 }
 
 struct RenderArgs {

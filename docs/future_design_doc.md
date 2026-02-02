@@ -5,6 +5,36 @@ This file captures ideas discussed that are **deliberately out of alpha scope**,
 
 ---
 
+## FFmpeg dependency and packaging strategy
+
+### Current decision (alpha + near-term)
+- This project will treat **FFmpeg as an external tool dependency** rather than embedding FFmpeg libraries.
+- The renderer will continue to use the **FFmpeg CLI** (and `ffprobe` where needed) for:
+  - encoding/muxing video output
+  - audio mixing/muxing
+  - video import normalization / inspection
+- We will **not bundle FFmpeg binaries by default**, since this is a **library-first** project intended to be imported into other Rust codebases.
+
+### Rationale
+- The FFmpeg CLI provides the most complete, stable, and debuggable feature set for our needs (filters, mixing, muxing).
+- Linking/embedding FFmpeg libraries via Rust FFI significantly increases build + cross-platform complexity and would require re-implementing (or deeply binding) capabilities we already get from the CLI.
+- Bundling FFmpeg is a better fit for a standalone CLI app than for a reusable Rust library (and introduces additional distribution and compliance considerations).
+
+### Developer experience and reliability
+- The project will include **preflight checks** before rendering to avoid late failures:
+  - verify `ffmpeg` is available and runnable (e.g., `ffmpeg -version`)
+  - verify `ffprobe` is available when required (e.g., for video import/normalization)
+  - return a `Result` with clear, actionable error messages if missing
+- The library will support an **override path** for FFmpeg tooling:
+  - via config (`ffmpeg_path`, `ffprobe_path`) and/or CLI flags (`--ffmpeg-path`, `--ffprobe-path`)
+  - PATH resolution remains the default if overrides are not provided
+
+### Future options (post-alpha)
+- Provide an optional “bundled FFmpeg” distribution path for a dedicated CLI tool (separate crate/binary) if needed for end-user convenience.
+- Re-evaluate FFmpeg library linking (libav*) only if a future requirement cannot be met reasonably via the CLI, recognizing the cross-platform and maintenance costs.
+
+---
+
 ## Future workflows
 
 ### Standalone CLI tool
