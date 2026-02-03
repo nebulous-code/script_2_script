@@ -1,6 +1,8 @@
 use std::env;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::Local;
 use anyhow::{bail, Result};
 
 use script_2_script::{
@@ -21,12 +23,15 @@ fn main() -> Result<()> {
     let cell_size = width as f32 / cols as f32;
     let cell_draw_size = cell_size - 1.0;
 
+    let args = RenderArgs::from_env(duration)?;
+    let duration = args.duration;
     let mut timeline = Timeline::new(duration, fps)?;
-    let args = RenderArgs::from_env(timeline.duration)?;
 
     let steps = (duration / args.step_interval).ceil() as usize;
     let mut grid = vec![Cell::default(); cols * rows];
+    println!("seed: {}", args.seed);
     let mut rng = SimpleRng::new(args.seed);
+    let mut spawn_accumulator = 0.0f32;
 
     // Background layer fills the frame with a dark tone.
     let mut background = Layer::new("background");
@@ -50,7 +55,28 @@ fn main() -> Result<()> {
         let end = (start + args.step_interval).min(duration);
 
         // Spawn new drops at random positions each step.
-        spawn_drops(&mut grid, cols, rows, args.spawn_per_step, &mut rng);
+        let spawn_count = if let Some(rate) = args.spawn_rate {
+            spawn_accumulator += rate.max(0.0) * args.step_interval;
+            let count = spawn_accumulator.floor() as usize;
+            spawn_accumulator -= count as f32;
+            count
+        } else {
+            args.spawn_per_step
+        };
+
+        if spawn_count > 0 {
+            spawn_drops(
+                &mut grid,
+                cols,
+                rows,
+                spawn_count,
+                &mut rng,
+                args.red_scale,
+                args.green_scale,
+                args.blue_scale,
+                &args,
+            );
+        }
 
         // Draw the current grid state for this time slice.
         for row in 0..rows {
@@ -80,7 +106,8 @@ fn main() -> Result<()> {
         }
 
         // Advance the simulation for the next step.
-        grid = step_rain(&grid, cols, rows, args.dim_factor, args.fall_factor);
+        let dim_value = args.resolve_dim(&mut rng);
+        grid = step_rain(&grid, cols, rows, dim_value);
     }
 
     timeline.add_layer(background);
@@ -109,6 +136,7 @@ struct Cell {
     g: u8,
     b: u8,
     brightness: f32,
+    fall_rate: f32,
 }
 
 impl Default for Cell {
@@ -118,6 +146,7 @@ impl Default for Cell {
             g: 0,
             b: 0,
             brightness: 0.0,
+            fall_rate: 0.0,
         }
     }
 }
@@ -138,39 +167,49 @@ fn spawn_drops(
     rows: usize,
     count: usize,
     rng: &mut SimpleRng,
+    red_scale: f32,
+    green_scale: f32,
+    blue_scale: f32,
+    args: &RenderArgs,
 ) {
     for _ in 0..count {
         let col = rng.next_usize(cols);
         let row = rng.next_usize(rows);
         let idx = row * cols + col;
-        let color = random_color(rng);
-        apply_cell(grid, idx, color, 1.0);
+        let color = random_color(rng, red_scale, green_scale, blue_scale);
+        let fall_rate = args.resolve_fall(rng);
+        apply_cell(grid, idx, color, 1.0, fall_rate);
     }
 }
 
-fn random_color(rng: &mut SimpleRng) -> (u8, u8, u8) {
-    let r = rng.next_u8();
-    let g = rng.next_u8();
-    let b = rng.next_u8();
+fn random_color(rng: &mut SimpleRng, red_scale: f32, green_scale: f32, blue_scale: f32) -> (u8, u8, u8) {
+    let r = scale_channel(rng.next_u8(), red_scale);
+    let g = scale_channel(rng.next_u8(), green_scale);
+    let b = scale_channel(rng.next_u8(), blue_scale);
     (r, g, b)
 }
 
-fn apply_cell(grid: &mut [Cell], idx: usize, color: (u8, u8, u8), brightness: f32) {
+fn scale_channel(value: u8, scale: f32) -> u8 {
+    let scaled = value as f32 * scale.clamp(0.0, 1.0);
+    scaled.round().clamp(0.0, 255.0) as u8
+}
+
+fn apply_cell(grid: &mut [Cell], idx: usize, color: (u8, u8, u8), brightness: f32, fall_rate: f32) {
     let cell = &mut grid[idx];
     if brightness >= cell.brightness {
         cell.r = color.0;
         cell.g = color.1;
         cell.b = color.2;
         cell.brightness = brightness;
+        cell.fall_rate = fall_rate;
     } else {
         cell.brightness = cell.brightness.max(brightness);
     }
 }
 
-fn step_rain(current: &[Cell], cols: usize, rows: usize, dim: f32, fall: f32) -> Vec<Cell> {
+fn step_rain(current: &[Cell], cols: usize, rows: usize, dim: f32) -> Vec<Cell> {
     let mut next = vec![Cell::default(); cols * rows];
     let dim = dim.clamp(0.0, 1.0);
-    let fall = fall.clamp(0.0, 1.0);
 
     for row in 0..rows {
         for col in 0..cols {
@@ -180,16 +219,33 @@ fn step_rain(current: &[Cell], cols: usize, rows: usize, dim: f32, fall: f32) ->
                 continue;
             }
 
-            // Dim the current cell.
-            let dimmed = cell.brightness * dim;
-            apply_cell(&mut next, idx, (cell.r, cell.g, cell.b), dimmed);
-
-            // Fall to the cell below at a reduced brightness.
+            // Fall to the cell below (each drop carries its own fall rate).
             if row + 1 < rows {
                 let below = (row + 1) * cols + col;
+                let fall = cell.fall_rate.clamp(0.0, 1.0);
                 let fallen = cell.brightness * fall;
-                apply_cell(&mut next, below, (cell.r, cell.g, cell.b), fallen);
+                apply_cell(
+                    &mut next,
+                    below,
+                    (cell.r, cell.g, cell.b),
+                    fallen,
+                    cell.fall_rate,
+                );
             }
+
+            // Dim the current cell to leave a trail that always fades faster than the drop.
+            let mut dimmed = cell.brightness * dim;
+            let fallen = cell.brightness * cell.fall_rate.clamp(0.0, 1.0);
+            if dimmed >= fallen {
+                dimmed = fallen * 0.8;
+            }
+            apply_cell(
+                &mut next,
+                idx,
+                (cell.r, cell.g, cell.b),
+                dimmed,
+                cell.fall_rate,
+            );
         }
     }
 
@@ -233,6 +289,11 @@ impl SimpleRng {
         }
         (self.next_u32() as usize) % max
     }
+
+    fn next_f32(&mut self) -> f32 {
+        let value = self.next_u32();
+        value as f32 / u32::MAX as f32
+    }
 }
 
 struct RenderArgs {
@@ -240,24 +301,46 @@ struct RenderArgs {
     start_time: f32,
     end_time: f32,
     output: Option<PathBuf>,
-    dim_factor: f32,
-    fall_factor: f32,
+    duration: f32,
+    dim_default: f32,
+    dim_fixed: Option<f32>,
+    dim_min: Option<f32>,
+    dim_max: Option<f32>,
+    fall_default: f32,
+    fall_fixed: Option<f32>,
+    fall_min: Option<f32>,
+    fall_max: Option<f32>,
     step_interval: f32,
     spawn_per_step: usize,
+    spawn_rate: Option<f32>,
     seed: u64,
+    red_scale: f32,
+    green_scale: f32,
+    blue_scale: f32,
 }
 
 impl RenderArgs {
-    fn from_env(duration: f32) -> Result<Self> {
+    fn from_env(default_duration: f32) -> Result<Self> {
         let mut render = false;
         let mut start_time = 0.0;
+        let mut duration = default_duration;
         let mut end_time = duration;
         let mut output = None;
-        let mut dim_factor = 0.7;
-        let mut fall_factor = 0.5;
+        let mut dim_default = 0.7;
+        let mut dim_fixed = None;
+        let mut dim_min = None;
+        let mut dim_max = None;
+        let mut fall_default = 0.5;
+        let mut fall_fixed = None;
+        let mut fall_min = None;
+        let mut fall_max = None;
         let mut step_interval = 0.1;
         let mut spawn_per_step = 35;
-        let mut seed = 1_u64;
+        let mut spawn_rate = None;
+        let mut seed = default_seed();
+        let mut red_scale = 1.0;
+        let mut green_scale = 1.0;
+        let mut blue_scale = 1.0;
 
         let mut args = env::args().skip(1);
         while let Some(arg) = args.next() {
@@ -279,17 +362,48 @@ impl RenderArgs {
                         args.next().ok_or_else(|| anyhow::anyhow!("--output requires a value"))?;
                     output = Some(PathBuf::from(value));
                 }
+                "--duration" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--duration requires a value"))?;
+                    duration = value.parse::<f32>()?;
+                    end_time = duration;
+                }
                 "--dim" => {
                     let value = args
                         .next()
                         .ok_or_else(|| anyhow::anyhow!("--dim requires a value"))?;
-                    dim_factor = value.parse::<f32>()?;
+                    dim_fixed = Some(value.parse::<f32>()?);
+                }
+                "--dim_min" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--dim_min requires a value"))?;
+                    dim_min = Some(value.parse::<f32>()?);
+                }
+                "--dim_max" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--dim_max requires a value"))?;
+                    dim_max = Some(value.parse::<f32>()?);
                 }
                 "--fall" => {
                     let value = args
                         .next()
                         .ok_or_else(|| anyhow::anyhow!("--fall requires a value"))?;
-                    fall_factor = value.parse::<f32>()?;
+                    fall_fixed = Some(value.parse::<f32>()?);
+                }
+                "--fall_min" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--fall_min requires a value"))?;
+                    fall_min = Some(value.parse::<f32>()?);
+                }
+                "--fall_max" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--fall_max requires a value"))?;
+                    fall_max = Some(value.parse::<f32>()?);
                 }
                 "--step" => {
                     let value = args
@@ -303,15 +417,43 @@ impl RenderArgs {
                         .ok_or_else(|| anyhow::anyhow!("--spawn requires a value"))?;
                     spawn_per_step = value.parse::<usize>()?;
                 }
+                "--spawn_rate" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--spawn_rate requires a value"))?;
+                    spawn_rate = Some(value.parse::<f32>()?);
+                }
                 "--seed" => {
                     let value = args
                         .next()
                         .ok_or_else(|| anyhow::anyhow!("--seed requires a value"))?;
                     seed = value.parse::<u64>()?;
                 }
+                "--r" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--r requires a value"))?;
+                    red_scale = value.parse::<f32>()?;
+                }
+                "--g" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--g requires a value"))?;
+                    green_scale = value.parse::<f32>()?;
+                }
+                "--b" => {
+                    let value = args
+                        .next()
+                        .ok_or_else(|| anyhow::anyhow!("--b requires a value"))?;
+                    blue_scale = value.parse::<f32>()?;
+                }
                 "--preview" => {}
                 other => bail!("unknown argument: {other}"),
             }
+        }
+
+        if duration <= 0.0 {
+            bail!("--duration must be > 0");
         }
 
         if start_time < 0.0 || end_time <= start_time || end_time > duration {
@@ -327,11 +469,22 @@ impl RenderArgs {
             start_time,
             end_time,
             output,
-            dim_factor,
-            fall_factor,
+            duration,
+            dim_default,
+            dim_fixed,
+            dim_min,
+            dim_max,
+            fall_default,
+            fall_fixed,
+            fall_min,
+            fall_max,
             step_interval,
             spawn_per_step,
+            spawn_rate,
             seed,
+            red_scale,
+            green_scale,
+            blue_scale,
         })
     }
 
@@ -339,6 +492,51 @@ impl RenderArgs {
         if let Some(path) = &self.output {
             return Ok(path.clone());
         }
-        Ok(PathBuf::from(format!("output/{default_stem}.mp4")))
+        let stamp = Local::now().format("%Y%m%d%H%M%S");
+        Ok(PathBuf::from(format!("output/{default_stem}_{stamp}.mp4")))
     }
+
+    fn resolve_dim(&self, rng: &mut SimpleRng) -> f32 {
+        if let Some(fixed) = self.dim_fixed {
+            return fixed.clamp(0.0, 1.0);
+        }
+
+        if self.dim_min.is_some() || self.dim_max.is_some() {
+            let mut min = self.dim_min.unwrap_or(self.dim_default);
+            let mut max = self.dim_max.unwrap_or(self.dim_default);
+            if min > max {
+                std::mem::swap(&mut min, &mut max);
+            }
+            let t = rng.next_f32();
+            return (min + (max - min) * t).clamp(0.0, 1.0);
+        }
+
+        self.dim_default.clamp(0.0, 1.0)
+    }
+
+    fn resolve_fall(&self, rng: &mut SimpleRng) -> f32 {
+        if let Some(fixed) = self.fall_fixed {
+            return fixed.clamp(0.0, 1.0);
+        }
+
+        if self.fall_min.is_some() || self.fall_max.is_some() {
+            let mut min = self.fall_min.unwrap_or(self.fall_default);
+            let mut max = self.fall_max.unwrap_or(self.fall_default);
+            if min > max {
+                std::mem::swap(&mut min, &mut max);
+            }
+            let t = rng.next_f32();
+            return (min + (max - min) * t).clamp(0.0, 1.0);
+        }
+
+        self.fall_default.clamp(0.0, 1.0)
+    }
+}
+
+fn default_seed() -> u64 {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    (nanos & u64::MAX as u128) as u64
 }
