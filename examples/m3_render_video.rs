@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 
-use raylib_playground::{
+use script_2_script::{
     AnimatedTransform, Clip, Color, Easing, FfmpegVideoEncoder, Keyframe, Layer, Object,
     RaylibRender, Shape, Timeline, Track, Transform, Vec2,
 };

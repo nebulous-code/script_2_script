@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
-use raylib_playground::{build_base_video, VideoClip};
+use script_2_script::{build_base_video, VideoClip};
 
 fn main() -> Result<()> {
     // This example stitches multiple mp4 clips into one base video track.

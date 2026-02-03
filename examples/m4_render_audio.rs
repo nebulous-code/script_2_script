@@ -3,11 +3,11 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
-use raylib_playground::{
+use script_2_script::{
     AnimatedTransform, Clip, Color, Easing, FfmpegVideoEncoder, Keyframe, Layer, MusicTrack,
     Object, RaylibRender, Shape, SfxEvent, Timeline, Track, Transform, Vec2,
 };
-use raylib_playground::{mux_video_audio, render_audio_wav, trim_audio};
+use script_2_script::{mux_video_audio, render_audio_wav, trim_audio};
 
 fn main() -> Result<()> {
     // 25-second timeline at 30 FPS for render with audio.

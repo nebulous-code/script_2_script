@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
-use raylib_playground::{
+use script_2_script::{
     AnimatedTransform, Clip, Color, FontFamily, FontSource, FfmpegVideoEncoder, Layer, Object,
     RaylibPreview, RaylibRender, StyledText, TextObject, Timeline, Track, Vec2,
 };
@@ -44,8 +44,8 @@ fn main() -> Result<()> {
     let start_y = -300.0;
     let end_y = 320.0;
     let position_track = Track::new(vec![
-        raylib_playground::Keyframe::new(0.0, Vec2 { x: -280.0, y: start_y }, raylib_playground::Easing::Linear),
-        raylib_playground::Keyframe::new(12.0, Vec2 { x: -280.0, y: end_y }, raylib_playground::Easing::Linear),
+        script_2_script::Keyframe::new(0.0, Vec2 { x: -280.0, y: start_y }, script_2_script::Easing::Linear),
+        script_2_script::Keyframe::new(12.0, Vec2 { x: -280.0, y: end_y }, script_2_script::Easing::Linear),
     ])?;
 
     let text_transform = AnimatedTransform {
